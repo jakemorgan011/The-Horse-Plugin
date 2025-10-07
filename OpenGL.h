@@ -20,7 +20,7 @@
 // 3. MAKE REVERB
 // 4. MAKE ROTATION AFFECT REVERB
 // 5. ADD KEYPRESS TO CHANGE HORSE DISTANCE AND WHAT NOT
-// 6. MAKE THAT REFLECT IN REVERB
+// 6. MAKE THAT REFLECT IN REVERB -- you are here.
 // 7. MAKE SURE THAT ALL SAVES TO XML AND CAN BE LOADED.
 // 8. TRIPLE CHECK FOR MEMORY LEAKS.
 // 9. GO BACK AND FIX THE XML
@@ -30,6 +30,9 @@
 // BEGIN
 // USING CLASSES FROM OPENGL DEMO FROM JUCER
 // GOING TO COPY THE "TOON SHADER" FRAGMENT SHADER FROM DOCS
+
+// forward declaration
+//class TheHorsePluginAudioProcessor;
 
 using namespace juce;
 struct OpenGLUtils
@@ -908,7 +911,7 @@ public:
         openGLContext.detach();
         openGLContext.setRenderer(nullptr);
     }
-    
+    //void setProcessor(TheHorsePluginAudioProcessor& proc){processor = &proc;}
     void newOpenGLContextCreated() override {
         freeAllContextObjects();
     }
@@ -934,8 +937,12 @@ public:
         texture.release();
     }
     
+    std::function<void(float)> update_callback;
+    
     // basically the onpaint() function.
     // called everytime the opengl canvas needs to render
+    // calling the update rotation everytime we draw and pass it to processor.
+    // actually a really simple solution to the multi threading.
     void renderOpenGL() override {
         using namespace ::juce::gl;
         const ScopedLock lock (mutex);
@@ -1005,6 +1012,20 @@ public:
         if (! overlay->isMouseButtonDownThreadSafe()){
             rotation += (float) rotationSpeed;
         }
+//        if(update_callback)
+//            update_callback(juce::jmap(sum_rotation(),(float)-3.14f, (float) 3.14f, (float) 0.001, (float) 1.0f));
+        
+        // there needs to be a seperate callback system to basically run the rotation calculation
+        // in the background while the display is closed.
+        // that's the #1 problem at the moment.
+        // and the artifacting...
+        // ie: if(!windowIsOpen()) process rotation outside of render loop.
+        if(update_callback)
+            update_callback(std::abs(sum_rotation()));
+        /*
+        if(processor){
+            static_cast<TheHorsePluginAudioProcessor*>(processor)->update_dt(rotation);
+        }*/
     }
     
     Matrix3D<float> getProjectionMatrix() const {
@@ -1016,6 +1037,7 @@ public:
         return Matrix3D<float>::fromFrustum (-w, w, -h, h, 4.0f, 30.0f);
     }
     
+    // need to have a way to communicate between the DGO rotation matrix and audio processor for realtime "rotation audio."
     Matrix3D<float> getViewMatrix() const {
         const ScopedLock lock (mutex);
         
@@ -1035,9 +1057,15 @@ public:
         overlay->setBounds(bounds);
         draggableOrientation.setViewport(bounds);
     }
+    float sum_rotation() {
+        auto r_matrix = draggableOrientation.getRotationMatrix();
+        float rX = std::atan2(r_matrix.mat[6], r_matrix.mat[10]);
+        //DBG(rX + rotation);
+        return rX + rotation;
+    }
     
-    
-    float rotation = 90.f;
+    //
+    float rotation = 1.3f;
     std::unique_ptr<OpenGLShaderProgram> shader;
     std::unique_ptr<OpenGLUtils::Shape> shape;
     std::unique_ptr<OpenGLUtils::Attributes> attributes;
@@ -1057,7 +1085,7 @@ public:
     bool doBackgroundDrawing = false;
     float scale = 1.f, rotationSpeed = 0.01f;
     CriticalSection mutex;
-    
+    //
     
     void updateShader(){
         const ScopedLock lock (shaderMutex);

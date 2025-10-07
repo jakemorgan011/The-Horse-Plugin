@@ -13,6 +13,16 @@
 
 namespace termite{
 
+// not including indexes but this could be a better solution with the indeces.
+static float interpolate_sample(float in_sample, float last_sample, float next_sample, int in_index, int last_index
+    ){
+    //memory wasting. could do it in one line.
+    float return_sample = 0.f;
+    return_sample = last_sample + next_sample / 2;
+    return_sample += (return_sample * in_sample);
+    return return_sample;
+}
+
 class delay{
 public:
     delay();
@@ -43,6 +53,7 @@ public:
     void process_block(juce::AudioBuffer<float>& in_buffer);
     void set_parameters(const float delay_time_ms, const float fb_gain);
 private:
+    std::vector<float> last_delayed_sample{0.0f, 0.0f};
 };
 
 class comb_filter{
@@ -61,6 +72,7 @@ private:
     juce::AudioBuffer<float> circular_buffer;
     std::vector<int> readheads{0,0};
     std::vector<int> writeheads{0,0};
+    std::vector<float> last_delayed_sample{0.0f, 0.0f};
     double f_sample_rate;
 };
 

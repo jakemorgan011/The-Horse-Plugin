@@ -132,8 +132,12 @@ bool TheHorsePluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& la
 
 void TheHorsePluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    if(buffer.getNumChannels() != 2){
+        DBG("channel count mismatch.");
+        return;
+    }
 
-    verb.set_parameters(220.0);
+    verb.set_parameters(smoothed_delayt_time_ms.getNextValue());
     verb.process_block(buffer);
 }
 
@@ -160,6 +164,9 @@ void TheHorsePluginAudioProcessor::setStateInformation (const void* data, int si
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+void TheHorsePluginAudioProcessor::update_dt(float in_time){
+    smoothed_delayt_time_ms.setTargetValue(std::abs(in_time));
 }
 
 //==============================================================================

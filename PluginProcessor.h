@@ -57,11 +57,22 @@ public:
     juce::ValueTree& getVT(){
         return *ValueTree;
     }
+    
+    void setRotationParameters(float rotationX, float rotationY, float rotationZ);
+    std::atomic<float>& getRotationX() { return rotationX; }
+    std::atomic<float>& getRotationY() { return rotationY; }
+    std::atomic<float>& getRotationZ() { return rotationZ; }
+    
+    void update_dt(float in_time);
 
 private:
     termite::delay_matrix verb;
     
     std::atomic<float>* delay_time = nullptr;
+    
+    std::atomic<float> rotationX{0.0f};
+    std::atomic<float> rotationY{0.0f};
+    std::atomic<float> rotationZ{0.0f};
     
     // static juce::Identifier
     // ask jake how to do value tree
